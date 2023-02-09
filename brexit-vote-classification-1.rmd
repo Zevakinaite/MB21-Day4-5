@@ -32,7 +32,7 @@ We sub-sample the data. Full data takes too much time to estimate for the class.
 
 ```{r}
 set.seed(20200813)
-df_brexit <- read_csv("data/df_bes.csv.gz") %>%
+df_brexit <- read_csv("data/data_bes.csv.gz") %>%
   sample_n(3000) # sampling data so
 ```
 
