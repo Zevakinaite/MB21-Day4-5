@@ -53,7 +53,9 @@ df_brexit <- df_brexit %>%
 ### Train-test split
 
 ```{r}
-train_idx <- createDataPartition(df_brexit$LeaveVote, p = .7, list = F) 
+set.seed(12345)
+train_idx <- createDataPartition(df_brexit$LeaveVote, p = .7, list = F) %>%
+  as.vector
 
 df_train <- df_brexit %>% slice(train_idx)
 df_test <- df_brexit %>% slice(-train_idx)
@@ -111,9 +113,34 @@ model.matrix(fm_socdem, data = df_train_preped) %>% head()
 Run a few models, and evaluate them. Which one has the better predictive performance?
 
 ```{r}
+print_conf <- function(fm) {mod_log_test <- glm(fm, data = df_train_preped, family = "binomial")
 
+pred_log_train <- mod_log_test %>% predict(newdata = df_train_preped, type = 'response')
+pred_log_train <- as.numeric(pred_log_train > .5) %>% factor()
+
+confusionMatrix(pred_log_train, df_train_preped$LeaveVote,
+                positive = '1', mode = "prec_recall")
+
+
+pred_log_test <- mod_log_test %>% predict(newdata = df_test_preped, type = 'response')
+pred_log_test <- as.numeric(pred_log_test > .5) %>% factor()
+
+print(confusionMatrix(pred_log_test, df_test_preped$LeaveVote,
+                positive = '1', mode = "prec_recall"))
+}
+
+print_conf(fm_socdem)
+print_conf(fm_identity)
+print_conf(fm_antielite)
+print_conf(fm_attitudes)
+print_conf(fm_all)
 ```
 
+###jei nori istraukti kazkoki rodmeni is confussion matrix
+conf_m <- confusionMatrix(pred_log_test, df_test_preped$LeaveVote,
+                positive = '1', mode = "prec_recall")
+                
+                conf_m$byClass['F1']
 ## Linear SVM
 
 - Train a linear SVM model, check the predictive performance. How does it compare to the logistic regression?
