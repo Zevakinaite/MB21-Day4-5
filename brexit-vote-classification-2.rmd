@@ -114,3 +114,107 @@ fm_all <- formula("LeaveVote ~ .")
 
 ```
 
+
+
+##############
+# FROM CLASS #
+##############
+
+
+## Data preparation
+
+- We will carry out:
+  - make `LeaveVote` factor variable
+  - test train split
+  - preprocess
+
+
+```{r}
+df_brexit <- df_brexit %>%
+    mutate(LeaveVote = factor(LeaveVote))
+```
+
+### Train-test split
+
+```{r}
+train_idx <- createDataPartition(df_brexit$LeaveVote, p = .7, list = F) 
+df_train <- df_brexit %>% slice(train_idx)
+df_test <- df_brexit %>% slice(-train_idx)
+```
+
+### Preprocess
+
+```{r}
+prep <- preProcess(df_train %>% select(-LeaveVote), method = c("center", "scale"))
+prep
+df_train_preped <- predict(prep, df_train)
+df_test_preped <- predict(prep, df_test)
+```
+
+## Model formulas
+
+There are four logistic regression models  in the manuscript (Table 2).
+
+1. Sociodemographics
+2. Identity
+3. Anti-elite
+4. Attitudes
+
+The following line of codes will generate the each model. 
+
+```{r}
+fm_socdem <- formula("LeaveVote ~ gender + age + edlevel + hhincome + econPersonalRetro1")
+fm_identity <- formula("LeaveVote ~ gender + age + edlevel + hhincome + 
+                        EuropeanIdentity + EnglishIdentity + BritishIdentity")
+fm_antielite <- formula("LeaveVote ~ gender + age + edlevel + hhincome + 
+              PolMistrust + GovDisapproval + PopulismScale + 
+              ConVote + LabVote + LibVote + SNPPCVote + UKIP")
+fm_attitudes <- formula("LeaveVote ~ gender + age + edlevel + hhincome + euUKNotRich + 
+              euNotPreventWar + FreeTradeBad + euParlOverRide1 + euUndermineIdentity1 + 
+              lessEUmigrants + effectsEUTrade1 + effectsEUImmigrationLower")
+fm_all <- formula("LeaveVote ~ .")
+```
+
+
+## Simple tree method
+
+- Estimate a simple classification tree, using one of the formula above. 
+- Draw tree
+- Evaluate the model
+- What do you find?
+
+```{r eval = F}
+library(tree)
+class_tree <- tree(fm_attitudes, data = df_train_preped)
+plot(class_tree)
+text(class_tree)
+predictions<- predict(class_tree, df_test_preped, type = "class")
+metrics<- confusionMatrix(predictions, df_test_preped$LeaveVote, positive = "1", mode = "prec_recall")
+```
+
+## Randowm forest regression and adaBoost
+
+- Now, run "forest" models
+- Any improvement of the prediction?
+- For random forest training, use `tuneGrid = data.frame(mtry = c(2:4))`. Otherwise it's too slow...
+
+```{r cache=T}
+ctrl <- trainControl(method = 'repeatedcv')
+mod_rf <- train(fm_attitudes,
+                data = df_train_preped, 
+                method = "rf", 
+                trControl = ctrl, 
+                tuneGrid = data.frame(mtry = c(2:4)))
+mod_rf
+pred_test_rf <- predict(mod_rf, newdata = df_test_preped)
+confusionMatrix(pred_test_rf, df_test_preped$LeaveVote, positive = "1", 
+                mode = "prec_recall")
+mod_ada <- train(fm_attitudes,
+                  data = df_train_preped, 
+                  trControl = ctrl, 
+                  method = "ada")
+mod_ada
+pred_test_ada <- predict(mod_ada, newdata = data_test_preped)
+confusionMatrix(pred_test_ada, data_test_preped$LeaveVote, positive = "1", 
+                mode = "prec_recall")
+```

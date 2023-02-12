@@ -120,3 +120,5 @@ ml_evaluate(model_lm, spark_covid_test)$mean_squared_error
 - `ml_logistic_regression()`
 - `ml_random_forest()`
 - `ml_gradient_boosted_trees()`
+
+
